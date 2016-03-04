@@ -121,3 +121,66 @@ void initHeapLimitAtLaunch()
 		isInit = 1;
 	}
 }
+
+void* bestFit(size_t nbBytes)
+{
+	void* currentAddress = heapLimitAtLaunch;
+	block_header* currentBlock;
+
+	void* heapLimit = sbrk(0);
+	if ((int)heapLimit == -1)
+		return -1;//set an error like this? exit(EXIT_FAILURE)
+
+	void* bestFitAddress=NULL;
+	size_t sizeBestFit;
+
+	while (currentAddress < heapLimit)
+	{
+
+		currentBlock = (block_header*)currentAddress;
+
+		updateBlock(currentBlock);
+
+		if (currentBlock->alloc == 0)
+		{
+			if (currentBlock->size >= nbBytes && (bestFitAddress == NULL || currentBlock->size < sizeBestFit))//add shortcut if size==nbBytes? break program behavior but increase speed
+			{
+				bestFitAddress = currentAddress;
+				sizeBestFit = currentBlock->size;
+			}
+		}
+
+		currentAddress += currentBlock->size + HEADER_SIZE;
+	}
+
+	decreaseHeapLimit(currentBlock);
+
+	return bestFitAddress;
+}
+
+void updateBlock(block_header* block)
+{
+	if (block == NULL || block->alloc == 1)
+		return;
+	
+	size_t totalSize = block->size;
+
+	void* currentAddress = &block + HEADER_SIZE + block->size;
+	block_header* currentBlock = (block_header*)currentAddress;
+	while (currentBlock->alloc == 0)
+	{
+		totalSize += HEADER_SIZE + currentBlock->size;
+		currentAddress += HEADER_SIZE + currentBlock->size;
+		currentBlock = (block_header*)currentAddress;
+	}
+
+	block->size = totalSize;
+}
+
+void decreaseHeapLimit(block_header* lastBlock)
+{
+	if (lastBlock==NULL || lastBlock->alloc==1)
+		return;
+
+	sbrk( - (HEADER_SIZE + lastBlock->size) );//test if it works useful or not?
+}
