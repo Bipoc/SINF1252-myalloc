@@ -128,8 +128,8 @@ void* bestFit(size_t nbBytes)
 	block_header* currentBlock;
 
 	void* heapLimit = sbrk(0);
-	if ((unsigned int)heapLimit == -1)
-		return (void*)-1;//set an error like this? exit(EXIT_FAILURE)
+	if ((int)heapLimit == -1)
+		return NULL;//set an error like this? exit(EXIT_FAILURE)
 
 	void* bestFitAddress=NULL;
 	size_t sizeBestFit;
