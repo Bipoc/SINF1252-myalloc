@@ -152,8 +152,9 @@ void* bestFit(size_t nbBytes)
 
 		currentAddress += currentBlock->size + HEADER_SIZE;
 	}
-
-	decreaseHeapLimit(currentBlock);
+	
+	if (bestFitAddress != &currentBlock)
+		decreaseHeapLimit(currentBlock);
 
 	return bestFitAddress;
 }
