@@ -1,3 +1,6 @@
+#ifndef _MYALLOC_H
+#define _MYALLOC_H_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -40,3 +43,5 @@ void updateBlock(block_header* block);
 try to decrease the heapLimit if lastBlock is not allocated
 **/
 void decreaseHeapLimit(block_header* lastBlock);
+
+#endif
