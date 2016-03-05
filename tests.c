@@ -25,7 +25,7 @@ void inspectMem()
 	void* currentTestedBlock = currentHeapLimit;
 	block_header* currentTestedHeader;
 	size_t countedBytes = 0;
-	int stop = 0;
+	int stop = 0; //Pourquoi afficher dans ce sens plus compliquer et pas safe
 	while (!stop)
 	{
 		if (currentTestedBlock-BYTES_ALIGNMENT-HEADER_SIZE >= heapLimitAtLaunch)
