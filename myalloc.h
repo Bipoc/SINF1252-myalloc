@@ -19,6 +19,12 @@ void* mymalloc(size_t size);
 void* mycalloc(size_t size);
 void myfree(void* ptr);
 
+/**
+test if an address is an effective block
+if not throw an error
+**/
+void isReleasable(void* ptr);
+
 void initHeapLimitAtLaunch();
 
 /**
@@ -46,10 +52,5 @@ increase the size of the block if possible
 	if the block is followed by other free block(s) and is itself free
 **/
 void updateBlock(block_header* block);
-
-/**
-try to decrease the heapLimit if lastBlock is not allocated
-**/
-void decreaseHeapLimit(block_header* lastBlock);
 
 #endif
