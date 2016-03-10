@@ -7,6 +7,8 @@
 
 int debugLevel = 1;//0 - 2
 
+size_t memSize;
+
 int main(int argc, char *argv[])
 {
 	void* currentHeapLimit = sbrk(0);
