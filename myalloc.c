@@ -61,7 +61,7 @@ void myfree(void* ptr)
 void isReleasable(void* ptr)
 {
 	if (ptr == NULL)
-		exit(EXIT_FAILURE)//TODO change?
+		exit(EXIT_FAILURE);//TODO change?
 
 	void* currentAddress = heapLimitAtLaunch;
 	block_header* currentBlock;
