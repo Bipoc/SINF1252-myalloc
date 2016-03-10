@@ -1,11 +1,14 @@
 #include "myalloc.h"
 
 static void* heapLimitAtLaunch = 0;
+static void* actualHeapLimit = 0;
+
 extern int debugLevel;
+extern size_t memSize;
 
 void* mymalloc(size_t size)
 {
-	initHeapLimitAtLaunch();//setup new rules
+	initHeapLimitAtLaunch();
 
 	if (size <=0)
 		return NULL;
@@ -44,14 +47,37 @@ void* mycalloc(size_t size)
 	return address;
 }
 
-void myfree(void* ptr)//securised way? table with address?
+void myfree(void* ptr)
 {
 	if (ptr == NULL)
 		return;
 
+	isReleasable(ptr);
+
 	block_header* ptrHeader = (block_header*) (ptr-HEADER_SIZE);
 	ptrHeader->alloc = 0;
-}	
+}
+
+void isReleasable(void* ptr)
+{
+	if (ptr == NULL)
+		exit(EXIT_FAILURE)//TODO change?
+
+	void* currentAddress = heapLimitAtLaunch;
+	block_header* currentBlock;
+
+	while (currentAddress != actualHeapLimit)
+	{
+		currentBlock = (block_header*)currentAddress;
+
+		if (currentAddress == ptr)
+			return;
+
+		currentAddress += HEADER_SIZE + currentBlock->size;
+	}
+
+	exit(EXIT_FAILURE);//TODO change?
+}
 
 void allocateBlock(void* blockAddress, size_t size)
 {
@@ -75,12 +101,18 @@ void allocateBlock(void* blockAddress, size_t size)
 	block->alloc = 1;
 }
 
-void initHeapLimitAtLaunch()//setup new rules
+void initHeapLimitAtLaunch()
 {
 	static int isInit = 0;
 	if (!isInit)
 	{
 		heapLimitAtLaunch = sbrk(0);
+		void *answer = sbrk(memSize);
+		if ((long)answer == -1)
+			exit(EXIT_FAILURE);//TODO add message with errno
+		
+		actualHeapLimit = heapLimitAtLaunch + memSize;
+
 		isInit = 1;
 	}
 }
@@ -90,14 +122,10 @@ void* bestFit(size_t nbBytes)
 	void* currentAddress = heapLimitAtLaunch;
 	block_header* currentBlock;
 
-	void* heapLimit = sbrk(0);
-	if ((long)heapLimit == -1)
-		return (void*)-1;//set an error like this? exit(EXIT_FAILURE)
-
 	void* bestFitAddress=NULL;
 	size_t sizeBestFit;
 
-	while (currentAddress < heapLimit)
+	while (currentAddress < actualHeapLimit)
 	{
 
 		currentBlock = (block_header*)currentAddress;
@@ -115,9 +143,6 @@ void* bestFit(size_t nbBytes)
 
 		currentAddress += currentBlock->size + HEADER_SIZE;
 	}
-
-	if (bestFitAddress != &currentBlock)
-		decreaseHeapLimit(currentBlock);
 
 	return bestFitAddress;
 }
@@ -139,12 +164,4 @@ void updateBlock(block_header* block)
 	}
 
 	block->size = totalSize;
-}
-
-void decreaseHeapLimit(block_header* lastBlock)
-{
-	if (lastBlock==NULL || lastBlock->alloc==1)
-		return;
-
-	sbrk( - (HEADER_SIZE + lastBlock->size) );//test if it works useful or not?
 }
