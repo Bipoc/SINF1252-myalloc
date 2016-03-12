@@ -23,7 +23,7 @@ void myfree(void* ptr);
 test if an address is an effective block
 if not throw an error
 **/
-void isReleasable(void* ptr);
+void isBlock(void* ptr);
 
 void initHeapLimitAtLaunch();
 
