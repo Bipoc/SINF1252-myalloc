@@ -6,6 +6,9 @@
 #include "myalloc.h"
 #include "tests.h"
 
+void CU_basic_run_tests();
+void CU_basic_show_failures();
+
 int debugLevel = 0;
 size_t memSize;
 
@@ -33,7 +36,7 @@ int main(int argc, char *argv[])
 	
 
 
-	//other tests suites
+	//other tests suites 
 
 
 
