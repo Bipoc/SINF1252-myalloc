@@ -3,61 +3,64 @@
 
 extern int debugLevel;
 
-void inspectMem()
+static void* heapLimitAtLaunch;
+extern size_t memSize;
+
+void setHeapLimitAtLaunch()
 {
-	printf("================ Memory inspection ====================\n");
-	static int heapLimitAtLaunchInitialized = 0;
-	const static void* heapLimitAtLaunch;
-	if (!heapLimitAtLaunchInitialized)
+	heapLimitAtLaunch = sbrk(0);
+}
+
+void printMem()
+{
+	void* currentAddress = heapLimitAtLaunch;
+	block_header* currentBlock;
+
+	printf("start printing memory :\n");
+	printf("\t\tallocated\tSize(block)\tCumulated Size\tAddress(header)\tisFullofZeros\n");
+	int numBlock=0;
+	int sumSize=0;
+	while (currentAddress < heapLimitAtLaunch + memSize)
 	{
-		heapLimitAtLaunch = sbrk(0);
-		heapLimitAtLaunchInitialized = 1;
-	}
-
-	void* currentHeapLimit = sbrk(0);
-
-	if (debugLevel == 1)
-	{
-		printf("Heap limit at launch :\t%p\n", heapLimitAtLaunch);
-		printf("Current heap limit :\t%p\n", currentHeapLimit);
-	}
-
-	void* currentTestedBlock = currentHeapLimit;
-	block_header* currentTestedHeader;
-	size_t countedBytes = 0;
-	int stop = 0; //Pourquoi afficher dans ce sens plus compliquer et pas safe
-	while (!stop)
-	{
-		if (currentTestedBlock-BYTES_ALIGNMENT-HEADER_SIZE >= heapLimitAtLaunch)
-		{
-			currentTestedBlock -= BYTES_ALIGNMENT;
-			countedBytes += BYTES_ALIGNMENT;
-
-			currentTestedHeader = (block_header*) (currentTestedBlock-HEADER_SIZE);
-
-			if (currentTestedHeader->zero == 0 && currentTestedHeader->size == countedBytes)
-			{
-				if (debugLevel == 1)
-				{
-					printf("-----------------------------------------------------------------\n");
-					printf("|                 Block -> size: %d bytes, alloc : %d             |\n", (int) currentTestedHeader->size, (int) currentTestedHeader->alloc);
-					printf("|...............................................................|\n");
-
-					int i;
-					for (i=0; i<currentTestedHeader->size/4; i++)
-						printf("|                     %d bytes                                   |\n", BYTES_ALIGNMENT);
-				}
-
-				currentTestedBlock -= HEADER_SIZE;
-				countedBytes = 0;
-			}
-		}
+		numBlock++;
+		currentBlock = (block_header*)currentAddress;
+		sumSize += HEADER_SIZE + currentBlock->size;
+		if (currentBlock->alloc == 1)
+			printf("\t%d : \tyes\t\t %d", numBlock, currentBlock->size);
 		else
-			stop = 1;
+			printf("\t%d : \tno\t\t %d", numBlock, currentBlock->size);
+		printf("\t\t%d\t\t%p", sumSize, currentAddress);
+		if (isFullOfZeros(currentAddress + HEADER_SIZE, currentBlock->size))
+			printf("\tyes");
+		else
+			printf("\tno");
+		printf("\n");
+		currentAddress += HEADER_SIZE + currentBlock->size;
+	}
+	printf("\n");
+}
+
+void checkSize()
+{
+	void* currentAddress = heapLimitAtLaunch;
+	size_t counted = 0;
+
+	while (currentAddress < heapLimitAtLaunch + memSize)
+	{
+
+		block_header* currentBlock = (block_header*)currentAddress;	
+		counted += currentBlock->size + HEADER_SIZE;
 	}
 
-	if (debugLevel == 1)
-		printf("-----------------------------------------------------------------\n");
+	//CU_ASSERT_TRUE(counted == memSize);
+}
 
-	printf("============== End of memory inspection =====================\n");
+int isFullOfZeros(void* address, size_t size)
+{
+	char* charAddress = (char*)address;
+	int i;
+	for (i=0; i<size; i++)
+		if (*(charAddress+i)!=0)
+			return 1==0;
+	return 1==1;
 }
