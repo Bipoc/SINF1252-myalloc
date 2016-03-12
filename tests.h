@@ -6,11 +6,17 @@
 #include <unistd.h>
 #include <CUnit/CUnit.h>
 
+#define MEM_SIZE_TESTS 40
+
 void setHeapLimitAtLaunch();
 
 void printMem();
 
+void printBytes();
+
 void checkSize();
+
+void checkCalloc();
 
 int isFullOfZeros(void* address, size_t size);
 
@@ -18,8 +24,8 @@ void resetMem();
 
 void fullBlockWithOnes(void* addressBlock);
 
-int initTests();
+int initCallocTests();
 
-int finishTests();
+int finishCallocTests();
 
 #endif
