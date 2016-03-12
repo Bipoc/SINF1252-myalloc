@@ -1,96 +1,68 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "myalloc.h"
 #include "tests.h"
 
-int debugLevel = 1;//0 - 2
+void CU_basic_run_tests();
+void CU_basic_show_failures();
+
+int debugLevel = 0;
+size_t memSize;
 
 int main(int argc, char *argv[])
 {
-	void* currentHeapLimit = sbrk(0);
-	printf("Current heap limit : %p\n", currentHeapLimit);
-	inspectMem();
+	/**
+	if (argc<1)
+		exit(EXIT_FAILURE);
 
-	//malloc(int)
-	int* ptrInt = (int*) mymalloc(sizeof(int));
+	memSize = (size_t)strtol(argv[1], NULL, 10);
+	
+	printf("%d\n", memSize);
+	**/
 
-	*ptrInt = 1252;
 
-	inspectMem();
-	myfree(ptrInt);
+	setHeapLimitAtLaunch();
 
-	inspectMem();
-/*
-	//malloc(long)
-	printf("\nTries to allocate %d bytes (long)\n", (int) sizeof(long));
-	long* ptrLong = (long*) mymalloc(sizeof(long));
-	if (ptrLong != NULL)
-		printf("Well allocated\n");
+	memSize = MEM_SIZE_TESTS;
 
-	*ptrLong = 900000000010101000;
-	printf("Value stored : %ld\n", *ptrLong);
+	mymalloc(0);
 
-	currentHeader = (block_header*) ((void*) ptrLong-HEADER_SIZE);
-	printf("size : %d, zero : %d, alloc : %d\n", currentHeader->size, currentHeader->zero, currentHeader->alloc);
 
-	myfree(ptrLong);
+	if (CUE_SUCCESS != CU_initialize_registry())
+		return CU_get_error();
+	
 
-	//malloc(short)
-	printf("\nTries to allocate %d bytes (short)\n", (int) sizeof(short));
-	short* ptrShort = (short*) mymalloc(sizeof(short));
-	if (ptrShort != NULL)
-		printf("Well allocated\n");
 
-	*ptrShort = 123;
-	printf("Value stored : %d\n", *ptrShort);
+	//other tests suites 
 
-	currentHeader = (block_header*) ((void*) ptrShort-HEADER_SIZE);
-	printf("size : %d, zero : %d, alloc : %d\n", currentHeader->size, currentHeader->zero, currentHeader->alloc);
 
-	myfree(ptrShort);
 
-	//malloc(char[5])
-	printf("\nTries to allocate %d bytes (char[5])\n", (int) sizeof(char)*5);
-	char* tabChar = mymalloc(sizeof(char)*5);
-	if (tabChar != NULL)
-		printf("Well allocated\n");
 
-	int i;
-	for (i=0; i<5; i++)
+	CU_pSuite pSuiteCalloc = NULL;	
+
+	pSuiteCalloc = CU_add_suite("calloc_suite", initCallocTests , finishCallocTests);
+	if (NULL == pSuiteCalloc)
 	{
-		tabChar[i] = i*2;
-		printf("Values stored : %d\n", tabChar[i]);
+		CU_cleanup_registry();
+		return CU_get_error();
 	}
 
-	currentHeader = (block_header*) ((void*) tabChar-HEADER_SIZE);
-	printf("size : %d, zero : %d, alloc : %d\n", currentHeader->size, currentHeader->zero, currentHeader->alloc);
+	if (NULL == CU_add_test(pSuiteCalloc, "Test memory as good size", checkSize)
+		|| NULL == CU_add_test(pSuiteCalloc, "Test memory is well set at zero by calloc", checkCalloc))
+	{
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
 
-	myfree(tabChar);
-*/
-	//not order free
-	//malloc(short)
-	short* ptr1 = (short*) mymalloc(sizeof(short));
-	*ptr1 = 333;
+	CU_basic_run_tests();
+	CU_basic_show_failures(CU_get_failure_list());
 
-	//malloc(char)
-	char* ptr2 = (char*) mymalloc(sizeof(char));
-	*ptr2 = 27;
+	CU_cleanup_registry();
 
-	inspectMem();
+	printf("\n");
 
-	myfree(ptr1);
-
-	inspectMem();
-
-	printf("Last value stored : %d (%p)\n", *ptr2, ptr2);
-
-	myfree(ptr2);
-
-	inspectMem();
-	currentHeapLimit = sbrk(0);
-	printf("Current heap limit : %p\n", currentHeapLimit);
-	
 	return EXIT_SUCCESS;
 }

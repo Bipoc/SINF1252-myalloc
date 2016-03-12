@@ -19,9 +19,23 @@ void* mymalloc(size_t size);
 void* mycalloc(size_t size);
 void myfree(void* ptr);
 
-void dropHeapLimit(void* ptrLastFreedBlock);
+/**
+test if an address is an effective block
+if not throw an error
+**/
+void isBlock(void* ptr);
 
 void initHeapLimitAtLaunch();
+
+/**
+allocate the block at the address passed in argument for the size
+passed in argument
+if the size does not fit perfectly in the block we create a new block
+in the rest of the free memory (at the end)
+the size is supposed to be <= than the size of the block
+note : this work only if HEADER_SIZE == BYTES_ALIGNEMENT
+**/
+void allocateBlock(void* blockAddress, size_t size);
 
 /**
 return the address of the block's header that best fit in memory
@@ -38,10 +52,5 @@ increase the size of the block if possible
 	if the block is followed by other free block(s) and is itself free
 **/
 void updateBlock(block_header* block);
-
-/**
-try to decrease the heapLimit if lastBlock is not allocated
-**/
-void decreaseHeapLimit(block_header* lastBlock);
 
 #endif

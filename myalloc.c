@@ -1,116 +1,105 @@
 #include "myalloc.h"
 
 static void* heapLimitAtLaunch = 0;
+static void* actualHeapLimit = 0;
+
 extern int debugLevel;
+extern size_t memSize;
 
 void* mymalloc(size_t size)
 {
 	initHeapLimitAtLaunch();
 
-	if (size > 0)
-	{
-		size_t nbBytes = size/4;
-		if (size%4 > 0)
-			nbBytes++;
-		nbBytes *= 4;
+	if (size <=0)
+		return NULL;
+	
+	size_t nbBytes = size/4;
+	if (size%4 > 0)
+		nbBytes++;
+	nbBytes *= 4;
 
-		if (debugLevel == 2)
-			printf("\t[[[ mymalloc==> Allocates %d bytes (+ %d header)...\n", (int) nbBytes, HEADER_SIZE);
+	void* blockAddress = bestFit(nbBytes);
 
-		void* beginningBlock = sbrk(nbBytes+HEADER_SIZE);
-		if ((long) beginningBlock == -1)
-			return NULL;
 
-		block_header* ptrHeader = (block_header*) beginningBlock;
-		ptrHeader->size = nbBytes ;
-		ptrHeader->zero = 0;
-		ptrHeader->alloc = 1;
+	if (blockAddress == NULL)
+		return NULL;
 
-		if (debugLevel == 2)
-			printf("\tAllocation of %d bytes complete (ptr : %p -> header : %p) ]]]\n", (int) nbBytes, beginningBlock+HEADER_SIZE, beginningBlock);
-		else if (debugLevel == 1)
-			printf("\t[mymalloc : %d(+%d) bytes (block : %p)]\n", (int) nbBytes, HEADER_SIZE, beginningBlock);
+	allocateBlock(blockAddress, nbBytes);
 
-		return beginningBlock+HEADER_SIZE;
-	}
-	return NULL;
+	return (void*)blockAddress + HEADER_SIZE;
+}
+
+void* mycalloc(size_t size)
+{
+	size_t nbBytes = size/4;
+	if (size%4 > 0)
+		nbBytes++;
+	nbBytes *= 4;
+	
+	char* address = (char*)mymalloc(nbBytes);//sizeof char always ==1?
+	if (address == NULL)
+		return NULL;
+	int i;
+	for (i=0; i<nbBytes; i++)
+		*(address+i) = 0;
+
+	return address;
 }
 
 void myfree(void* ptr)
 {
-	if (ptr != NULL)
-	{
-		block_header* ptrHeader = (block_header*) (ptr-HEADER_SIZE);
-		size_t bytesToFree = ptrHeader->size;
-		if (debugLevel == 2)
-			printf("\t[[[ myfree==> Freeing %d bytes (ptr : %p -> header %p)...\n", (int) bytesToFree, ptr, ptrHeader);
-		else if (debugLevel == 1)
-			printf("\t[myfree : %d(+%d) bytes (block : %p)\n", (int) bytesToFree, HEADER_SIZE, ptrHeader);
-		ptrHeader->alloc = 0;
+	if (ptr == NULL)
+		return;
 
-		void* endHeap = sbrk(0);
-		if ((long) endHeap != -1)
-		{
-			if (debugLevel == 2)
-				printf("\tNext block : %p\tendHeap %p\n", ptr+ptrHeader->size, endHeap);
-			if (ptr+ptrHeader->size == endHeap)
-			{
-				if (debugLevel == 2)
-					printf("\tShifting heap limit...\n");
-				if (bytesToFree > 0)
-					sbrk(-bytesToFree-HEADER_SIZE);
-				else
-					sbrk(-HEADER_SIZE);
+	ptr -= HEADER_SIZE;
 
-				dropHeapLimit((void*) ptrHeader);
-			}
-		}
-
-		if (debugLevel == 2)
-			printf("\tFreed %d bytes ]]]\n", (int) bytesToFree);
-		else if (debugLevel == 1)
-			printf("\tmyfree done]\n");
-	}
+	isBlock(ptr);
+	
+	block_header* ptrHeader = (block_header*)ptr;
+	ptrHeader->alloc = 0;
 }
 
-void dropHeapLimit(void* ptrLastFreedBlock)
+void isBlock(void* ptr)
 {
-	void* currentTestedBlock = ptrLastFreedBlock;
-	block_header* currentTestedHeader;
-	size_t bytesCounted;
-	int stop = 0;
-	while (!stop)
+	if (ptr == NULL)
+		exit(EXIT_FAILURE);//TODO change?
+
+	void* currentAddress = heapLimitAtLaunch;
+	block_header* currentBlock;
+
+	while (currentAddress != actualHeapLimit)
 	{
-		if (currentTestedBlock-BYTES_ALIGNMENT-HEADER_SIZE >= heapLimitAtLaunch)
-		{
-			currentTestedBlock -= BYTES_ALIGNMENT;
-			bytesCounted += BYTES_ALIGNMENT;
-			currentTestedHeader = (block_header*) (currentTestedBlock-HEADER_SIZE);
+		currentBlock = (block_header*)currentAddress;
 
-			if (debugLevel == 1)
-				printf("\tTesting previous header -> zero:%d, size:%d, alloc:%d\n", (int) currentTestedHeader->zero, currentTestedHeader->size, currentTestedHeader->alloc);
+		if (currentAddress == ptr)
+			return;
 
-			if (currentTestedHeader->zero == 0 && currentTestedHeader->size == bytesCounted)
-			{
-				if (currentTestedHeader->alloc == 0)
-				{
-					if (debugLevel == 2)
-						printf("\tFreeing another %d free bytes (+ %d for header) at address : %p (-> header %p)...\n", (int) bytesCounted, HEADER_SIZE, currentTestedBlock, (void*) currentTestedHeader);
-					else if (debugLevel == 1)
-						printf("\tFreeing another %d(+%d) bytes (block : %p)\n", (int) bytesCounted, HEADER_SIZE, (void*) currentTestedHeader);
-					sbrk(-bytesCounted-HEADER_SIZE);
-
-					bytesCounted = 0;
-					currentTestedBlock -= HEADER_SIZE;
-				}
-				else
-					stop = 1;
-			}
-		}
-		else
-			stop = 1;
+		currentAddress += HEADER_SIZE + currentBlock->size;
 	}
+
+	exit(EXIT_FAILURE);//TODO change?
 }
+
+void allocateBlock(void* blockAddress, size_t size)
+{
+	if (blockAddress == NULL)
+		return;
+
+	block_header* block = (block_header*)blockAddress;
+	if (block->size < size)
+		return;
+
+	if (block->size != size)
+	{
+		void* newBlockAddress = blockAddress + HEADER_SIZE + size;
+		block_header* newBlock = (block_header*)newBlockAddress;
+		newBlock->size = block->size - size - HEADER_SIZE;
+		newBlock->zero = 0;
+		newBlock->alloc = 0;
+	}
+
+	block->size = size;
+	block->alloc = 1;}
 
 void initHeapLimitAtLaunch()
 {
@@ -118,6 +107,23 @@ void initHeapLimitAtLaunch()
 	if (!isInit)
 	{
 		heapLimitAtLaunch = sbrk(0);
+
+		size_t temporary = memSize/4;
+		if (memSize%4 > 0)
+			temporary++;
+		memSize = temporary * 4;
+
+		void *answer = sbrk(memSize);
+		if ((long)answer == -1)
+			exit(EXIT_FAILURE);//TODO add message with errno
+
+		actualHeapLimit = heapLimitAtLaunch + memSize;
+
+		block_header* firstBlock = (block_header*)heapLimitAtLaunch;
+		firstBlock->alloc = 0;
+		firstBlock->zero = 0;
+		firstBlock->size = memSize - HEADER_SIZE;
+
 		isInit = 1;
 	}
 }
@@ -127,16 +133,12 @@ void* bestFit(size_t nbBytes)
 	void* currentAddress = heapLimitAtLaunch;
 	block_header* currentBlock;
 
-	void* heapLimit = sbrk(0);
-	if ((int)heapLimit == -1)
-		return -1;//set an error like this? exit(EXIT_FAILURE)
-
 	void* bestFitAddress=NULL;
 	size_t sizeBestFit;
 
-	while (currentAddress < heapLimit)
-	{
 
+	while (currentAddress < actualHeapLimit)
+	{
 		currentBlock = (block_header*)currentAddress;
 
 		updateBlock(currentBlock);
@@ -152,9 +154,6 @@ void* bestFit(size_t nbBytes)
 
 		currentAddress += currentBlock->size + HEADER_SIZE;
 	}
-	
-	if (bestFitAddress != &currentBlock)
-		decreaseHeapLimit(currentBlock);
 
 	return bestFitAddress;
 }
@@ -163,25 +162,19 @@ void updateBlock(block_header* block)
 {
 	if (block == NULL || block->alloc == 1)
 		return;
-	
+
 	size_t totalSize = block->size;
 
-	void* currentAddress = &block + HEADER_SIZE + block->size;
+	void* currentAddress = (void*)block + HEADER_SIZE + block->size;
 	block_header* currentBlock = (block_header*)currentAddress;
-	while (currentBlock->alloc == 0)
+
+	while (currentBlock->alloc == 0 && currentAddress < actualHeapLimit)
 	{
 		totalSize += HEADER_SIZE + currentBlock->size;
+
 		currentAddress += HEADER_SIZE + currentBlock->size;
 		currentBlock = (block_header*)currentAddress;
 	}
 
 	block->size = totalSize;
-}
-
-void decreaseHeapLimit(block_header* lastBlock)
-{
-	if (lastBlock==NULL || lastBlock->alloc==1)
-		return;
-
-	sbrk( - (HEADER_SIZE + lastBlock->size) );//test if it works useful or not?
 }
