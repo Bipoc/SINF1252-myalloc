@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <CUnit/CUnit.h>
+#include <CUnit/CUnit.h>
 
 void setHeapLimitAtLaunch();
 
@@ -13,5 +13,13 @@ void printMem();
 void checkSize();
 
 int isFullOfZeros(void* address, size_t size);
+
+void resetMem();
+
+void fullBlockWithOnes(void* addressBlock);
+
+int initTests();
+
+int finishTests();
 
 #endif
