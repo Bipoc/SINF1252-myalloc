@@ -50,9 +50,11 @@ void checkSize()
 
 		block_header* currentBlock = (block_header*)currentAddress;	
 		counted += currentBlock->size + HEADER_SIZE;
+
+		currentAddress += HEADER_SIZE + currentBlock->size;
 	}
 
-	//CU_ASSERT_TRUE(counted == memSize);
+	CU_ASSERT(counted == memSize);
 }
 
 int isFullOfZeros(void* address, size_t size)
@@ -63,4 +65,39 @@ int isFullOfZeros(void* address, size_t size)
 		if (*(charAddress+i)!=0)
 			return 1==0;
 	return 1==1;
+}
+
+void resetMem()
+{
+	block_header* firstBlock = (block_header*)heapLimitAtLaunch;
+	firstBlock->size = memSize - HEADER_SIZE;
+	firstBlock->zero = 0;
+	firstBlock->alloc = 0;
+}
+
+void fullBlockWithOnes(void* addressBlock)
+{
+	block_header* block = (block_header*)addressBlock;
+	char* charAddress = (char*)addressBlock;
+	size_t size = block->size;
+
+	size_t i;
+	for (i=0; i<size; i++)
+		*(charAddress + HEADER_SIZE + i) = 1;
+}
+
+int initTests()
+{
+	setHeapLimitAtLaunch();
+
+	mymalloc(0);
+
+	return 0;
+}
+
+int finishTests()
+{
+	resetMem();
+
+	return 0;
 }
