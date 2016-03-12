@@ -40,6 +40,21 @@ void printMem()
 	printf("\n");
 }
 
+void printBytes()
+{
+	char* charAddress = (char*)heapLimitAtLaunch;
+	int i=0;
+	while ((void*)charAddress+i < heapLimitAtLaunch + memSize)
+	{
+		if (i%4 == 0)
+			printf("\n");
+		i++;
+		printf("%d ", *(charAddress+i));
+	}
+
+	printf("\n");
+}
+
 void checkSize()
 {
 	void* currentAddress = heapLimitAtLaunch;
@@ -57,14 +72,34 @@ void checkSize()
 	CU_ASSERT(counted == memSize);
 }
 
+void checkCalloc()
+{
+	void* currentAddress = heapLimitAtLaunch;
+	int counted = 0;
+
+	while (currentAddress < heapLimitAtLaunch + memSize)
+	{
+
+		block_header* currentBlock = (block_header*)currentAddress;	
+		counted = counted && isFullOfZeros(currentAddress + HEADER_SIZE, currentBlock->size);
+
+		currentAddress += HEADER_SIZE + currentBlock->size;
+	}
+
+	CU_ASSERT(counted == 0);
+}
+
 int isFullOfZeros(void* address, size_t size)
 {
 	char* charAddress = (char*)address;
-	int i;
+	size_t i;
 	for (i=0; i<size; i++)
+	{
 		if (*(charAddress+i)!=0)
-			return 1==0;
-	return 1==1;
+			return 0;
+	}
+
+	return 1;
 }
 
 void resetMem()
@@ -86,16 +121,20 @@ void fullBlockWithOnes(void* addressBlock)
 		*(charAddress + HEADER_SIZE + i) = 1;
 }
 
-int initTests()
+int initCallocTests()
 {
-	setHeapLimitAtLaunch();
+	fullBlockWithOnes(heapLimitAtLaunch);
 
-	mymalloc(0);
+	mycalloc(4); void* p2=mycalloc(8); mycalloc(4); mycalloc(8);
+
+	myfree(p2);
+
+	mycalloc(4); mycalloc(0);
 
 	return 0;
 }
 
-int finishTests()
+int finishCallocTests()
 {
 	resetMem();
 
