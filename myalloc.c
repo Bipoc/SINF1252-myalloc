@@ -45,11 +45,16 @@ void* mymalloc(size_t size)
 
 void* mycalloc(size_t size)
 {
-	short* address = mymalloc(size);//sizeof short always ==1?
+	size_t nbBytes = size/4;
+	if (size%4 > 0)
+		nbBytes++;
+	nbBytes *= 4;
+	
+	char* address = (char*)mymalloc(nbBytes);//sizeof char always ==1?
 	if (address == NULL)
 		return NULL;
 	int i;
-	for (i=0; i<size; i++)
+	for (i=0; i<nbBytes; i++)
 		*(address+i) = 0;
 
 	return address;
@@ -118,7 +123,6 @@ void allocateBlock(void* blockAddress, size_t size)
 		return;
 
 	block_header* block = (block_header*)blockAddress;
-
 	if (block->size < size)
 		return;
 
@@ -132,8 +136,7 @@ void allocateBlock(void* blockAddress, size_t size)
 	}
 
 	block->size = size;
-	block->alloc = 1;
-}
+	block->alloc = 1;}
 
 void initHeapLimitAtLaunch()
 {
