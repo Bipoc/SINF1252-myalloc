@@ -1,16 +1,59 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "myalloc.h"
 #include "tests.h"
 
-int debugLevel = 1;//0 - 2
-
+int debugLevel = 0;
 size_t memSize;
 
 int main(int argc, char *argv[])
 {
+	if (argc<1)
+		exit(EXIT_FAILURE);
+
+	printf("%s\n", argv[1]);
+
+	memSize = (size_t)strtol(argv[1], NULL, 10);
+
+	printf("%d\n", memSize);
+
+	setHeapLimitAtLaunch();
+
+	//some call
+	void* ptr1 = mymalloc(5);
+	printf("ptr1 : %p\n", ptr1);
+	printMem();
+	//int *ptr2 = (int*)ptr1;
+	//*(ptr2+3)=4;
+
+	//myfree(ptr1);
+	//printf("%p\n", ptr1);
+
+	//ptr1 = mymalloc(5);
+	//printf("%p\n", ptr1);
+
+	void* ptr3 = mymalloc(10);
+	printf("ptr 3 : %p\n", ptr3);
+	printMem();
+
+	void* ptr4 = mycalloc(memSize - 4 - (4+8)-(4+12)-20);
+	printf("ptr4 : %p\n", ptr4);
+	printMem();
+
+	void* ptr5 = mycalloc(4);
+	printf("ptr5 : %p\n", ptr5);
+	printMem();
+
+	myfree(ptr4);
+	printMem();
+
+	void* ptr6 = mymalloc(50);
+	printf("ptr6 : %p\n", ptr6);
+	printMem();
+	/**
 	void* currentHeapLimit = sbrk(0);
 	printf("Current heap limit : %p\n", currentHeapLimit);
 	inspectMem();
@@ -24,6 +67,7 @@ int main(int argc, char *argv[])
 	myfree(ptrInt);
 
 	inspectMem();
+	**/
 /*
 	//malloc(long)
 	printf("\nTries to allocate %d bytes (long)\n", (int) sizeof(long));
@@ -71,6 +115,7 @@ int main(int argc, char *argv[])
 
 	myfree(tabChar);
 */
+	/**
 	//not order free
 	//malloc(short)
 	short* ptr1 = (short*) mymalloc(sizeof(short));
@@ -93,6 +138,6 @@ int main(int argc, char *argv[])
 	inspectMem();
 	currentHeapLimit = sbrk(0);
 	printf("Current heap limit : %p\n", currentHeapLimit);
-	
+	**/
 	return EXIT_SUCCESS;
 }
