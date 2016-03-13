@@ -3,7 +3,6 @@
 static void* heapLimitAtLaunch = 0;
 static void* actualHeapLimit = 0;
 
-extern int debugLevel;
 extern size_t memSize;
 
 void* mymalloc(size_t size)
@@ -23,22 +22,25 @@ void* mymalloc(size_t size)
 
 	if (blockAddress == NULL)
 		return NULL;
-
+		
 	allocateBlock(blockAddress, nbBytes);
 
 	return (void*)blockAddress + HEADER_SIZE;
 }
 
-void* mycalloc(size_t size)
+void* mycalloc(size_t nmemb, size_t size)
 {
+	size = nmemb * size;
+
 	size_t nbBytes = size/4;
 	if (size%4 > 0)
 		nbBytes++;
 	nbBytes *= 4;
 	
-	char* address = (char*)mymalloc(nbBytes);//sizeof char always ==1?
+	char* address = (char*)mymalloc(nbBytes);
 	if (address == NULL)
 		return NULL;
+
 	int i;
 	for (i=0; i<nbBytes; i++)
 		*(address+i) = 0;
@@ -53,16 +55,17 @@ void myfree(void* ptr)
 
 	ptr -= HEADER_SIZE;
 
-	isBlock(ptr);
-	
-	block_header* ptrHeader = (block_header*)ptr;
-	ptrHeader->alloc = 0;
+	if (isBlock(ptr))
+	{
+		block_header* ptrHeader = (block_header*)ptr;
+		ptrHeader->alloc = 0;
+	}
 }
 
-void isBlock(void* ptr)
+int isBlock(void* ptr)
 {
 	if (ptr == NULL)
-		exit(EXIT_FAILURE);//TODO change?
+		return 0;
 
 	void* currentAddress = heapLimitAtLaunch;
 	block_header* currentBlock;
@@ -72,12 +75,49 @@ void isBlock(void* ptr)
 		currentBlock = (block_header*)currentAddress;
 
 		if (currentAddress == ptr)
-			return;
+			return 1;
 
 		currentAddress += HEADER_SIZE + currentBlock->size;
 	}
 
-	exit(EXIT_FAILURE);//TODO change?
+	return 0;
+}
+
+void initHeapLimitAtLaunch()
+{
+	static int isInit = 0;
+	if (!isInit)
+	{
+		heapLimitAtLaunch = sbrk(0);
+
+		if (memSize<=0)
+		{
+			printf("memory to set in Heap is a negative number or zero\n");
+			exit(EXIT_FAILURE);
+		}
+		
+		//for alignement
+		size_t temporary = memSize/4;
+		if (memSize%4 > 0)
+			temporary++;
+		memSize = temporary * 4;
+
+		void *answer = sbrk(memSize);
+		if ((long)answer == -1)
+		{
+			printf("sbrk could not set %d memory in Heap, see errno for more details\n", memSize);
+			exit(EXIT_FAILURE);
+		}
+
+		actualHeapLimit = heapLimitAtLaunch + memSize;
+
+		block_header* firstBlock = (block_header*)heapLimitAtLaunch;
+		firstBlock->alloc = 0;
+		firstBlock->zero = 0;
+		firstBlock->size = memSize - HEADER_SIZE;
+
+		isInit = 1;
+	}
 }
 
 void allocateBlock(void* blockAddress, size_t size)
@@ -89,6 +129,8 @@ void allocateBlock(void* blockAddress, size_t size)
 	if (block->size < size)
 		return;
 
+	//if it does not fit exactly we create a new free block
+	//wich is always possible due to memory 4 bytes alignement
 	if (block->size != size)
 	{
 		void* newBlockAddress = blockAddress + HEADER_SIZE + size;
@@ -99,33 +141,7 @@ void allocateBlock(void* blockAddress, size_t size)
 	}
 
 	block->size = size;
-	block->alloc = 1;}
-
-void initHeapLimitAtLaunch()
-{
-	static int isInit = 0;
-	if (!isInit)
-	{
-		heapLimitAtLaunch = sbrk(0);
-
-		size_t temporary = memSize/4;
-		if (memSize%4 > 0)
-			temporary++;
-		memSize = temporary * 4;
-
-		void *answer = sbrk(memSize);
-		if ((long)answer == -1)
-			exit(EXIT_FAILURE);//TODO add message with errno
-
-		actualHeapLimit = heapLimitAtLaunch + memSize;
-
-		block_header* firstBlock = (block_header*)heapLimitAtLaunch;
-		firstBlock->alloc = 0;
-		firstBlock->zero = 0;
-		firstBlock->size = memSize - HEADER_SIZE;
-
-		isInit = 1;
-	}
+	block->alloc = 1;
 }
 
 void* bestFit(size_t nbBytes)
@@ -141,15 +157,13 @@ void* bestFit(size_t nbBytes)
 	{
 		currentBlock = (block_header*)currentAddress;
 
-		updateBlock(currentBlock);
+		updateBlock(currentBlock);//group free blocks
 
-		if (currentBlock->alloc == 0)
+		
+		if (currentBlock->alloc == 0 && currentBlock->size >= nbBytes && (bestFitAddress == NULL || currentBlock->size < sizeBestFit))//add shortcut if size==nbBytes? break program behavior but increase speed
 		{
-			if (currentBlock->size >= nbBytes && (bestFitAddress == NULL || currentBlock->size < sizeBestFit))//add shortcut if size==nbBytes? break program behavior but increase speed
-			{
-				bestFitAddress = currentAddress;
-				sizeBestFit = currentBlock->size;
-			}
+			bestFitAddress = currentAddress;
+			sizeBestFit = currentBlock->size;
 		}
 
 		currentAddress += currentBlock->size + HEADER_SIZE;
