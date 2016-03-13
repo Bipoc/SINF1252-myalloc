@@ -1,4 +1,4 @@
-#ifndef _MYALLOC_H
+#ifndef _MYALLOC_H_
 #define _MYALLOC_H_
 
 #include <stdio.h>
