@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h> // to have access to function "memset"
 
 #define HEADER_SIZE		4
 #define BYTES_ALIGNMENT	4
