@@ -41,9 +41,7 @@ void* mycalloc(size_t nmemb, size_t size)
 	if (address == NULL)
 		return NULL;
 
-	int i;
-	for (i=0; i<nbBytes; i++)
-		*(address+i) = 0;
+	memset(address, 0, nbBytes);
 
 	return address;
 }
