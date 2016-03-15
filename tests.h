@@ -2,19 +2,20 @@
 #define _TESTS_H_
 
 #include <CUnit/CUnit.h>
-void CU_basic_run_tests();//to avoid warning
+//to avoid warning
+void CU_basic_run_tests();
 void CU_basic_show_failures();
 
 #define MEM_SIZE_TESTS 40
 
-//start
-//only one call and before any call to mymalloc or my calloc
+//beginning
+//called only once before any call to mymalloc or mycalloc
 void setHeapLimitAtLaunch();
 
-//launch CUnit Tests
+//launches CUnit tests
 int cunitTests();
 
-//print
+//prints
 void printMem();
 void printBytes();
 
@@ -22,7 +23,7 @@ void printBytes();
 void resetMem();
 void fullBlockWithOnes(void* addressBlock);
 
-//basic tests : first tests with basic call
+//basic tests : first tests with basic calls
 void testBasicFree();
 void testBasicAllocAndFree();
 void testBlockbyBlockBasic();
@@ -36,7 +37,7 @@ void allocMustSuccess();
 void testBlockbyBlockLimits();
 void allocMustFail();
 
-//calloc tests
+//mycalloc tests
 void checkSize();
 void checkCalloc();
 int isFullOfZeros(void* address, size_t size);
