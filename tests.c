@@ -353,6 +353,8 @@ int initFreeTests()
 
 	void* p1=mymalloc(4); void* p2=mymalloc(8); mymalloc(4); void* p3=mymalloc(4);
 	myfree(p1); myfree(p2); myfree(p3);
+	
+	myfree(p2-1);//bad call
 
 	return 0;
 }
