@@ -21,7 +21,4 @@ clean :
 cleanall : clean
 	rm -rf $(EXEC)
 
-start :
-	export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
-
 	
