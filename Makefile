@@ -1,9 +1,9 @@
-EXEC=myalloc
+EXEC=SINF1252-projet1
 
 #do not forget to adapt the path to your CUnit directory
 all : $(EXEC)
 
-mytests : main.o myalloc.o tests.o
+SINF1252-projet1 : main.o myalloc.o tests.o
 	gcc -o $(EXEC) main.o myalloc.o tests.o -Wall -L$(HOME)/local/lib -lcunit
 	
 myalloc.o : myalloc.c
