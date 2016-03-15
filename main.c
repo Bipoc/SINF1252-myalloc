@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	if (argc>=2)
 	{
 		memSize = (size_t)strtol(argv[1], NULL, 10);
-		printf("HeapMemory asked is : %d\n", memSize);
+		printf("HeapMemory asked is : %d\n", (int)memSize);
 	}//note don't do a call to mymalloc or mycalloc before cunitTests, if you use cunitTests
 
 	//cunitTests();//decomment to launch
