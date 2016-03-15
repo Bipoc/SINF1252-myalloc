@@ -103,7 +103,7 @@ void initHeapLimitAtLaunch()
 		void *answer = sbrk(memSize);
 		if ((long)answer == -1)
 		{
-			printf("sbrk could not set %d memory in Heap, see errno for more details\n", memSize);
+			printf("sbrk could not set %d memory in Heap, see errno for more details\n", (int)memSize);
 			exit(EXIT_FAILURE);
 		}
 
