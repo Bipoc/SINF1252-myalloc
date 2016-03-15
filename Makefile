@@ -1,4 +1,4 @@
-EXEC=mytests
+EXEC=myalloc
 
 #do not forget to adapt the path to your CUnit directory
 all : $(EXEC)
